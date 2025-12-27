@@ -1,0 +1,43 @@
+<?php
+// Load config
+$config = require __DIR__ . '/../src/config.php';
+$db = $config['db'];
+
+try {
+    $dsn = "pgsql:host={$db['host']};port={$db['port']};dbname={$db['dbname']}";
+    $pdo = new PDO($dsn, $db['user'], $db['password']);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+    // Create item_images table
+    $sql = "
+    CREATE TABLE IF NOT EXISTS item_images (
+        id SERIAL PRIMARY KEY,
+        item_id INTEGER REFERENCES items(id) ON DELETE CASCADE,
+        image_url VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    ";
+    
+    $pdo->exec($sql);
+    echo "Migration Successful: item_images table created.<br>";
+
+    // Create directories
+    $uploadDirs = [
+        __DIR__ . '/uploads',
+        __DIR__ . '/uploads/items',
+        __DIR__ . '/uploads/gallery'
+    ];
+
+    foreach ($uploadDirs as $dir) {
+        if (!file_exists($dir)) {
+            mkdir($dir, 0777, true);
+            echo "Created directory: $dir<br>";
+        } else {
+            chmod($dir, 0777); // Ensure write permissions
+            echo "Directory exists (chmod 777): $dir<br>";
+        }
+    }
+
+} catch (PDOException $e) {
+    echo "Error: " . $e->getMessage();
+}
