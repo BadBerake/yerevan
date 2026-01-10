@@ -169,24 +169,43 @@
         <!-- Sidebar -->
         <div style="position: sticky; top: 120px; height: fit-content;">
             
-            <?php if(!empty($item['phone']) || !empty($item['instagram']) || !empty($item['whatsapp'])): ?>
+            <?php 
+            // Check for contact info from new columns or standard fields
+            $phone = $item['phone'] ?? '';
+            $website = $item['website'] ?? '';
+            $instagram = $item['instagram'] ?? '';
+            $whatsapp = $item['whatsapp'] ?? '';
+            
+            // Generate WhatsApp link from phone if phone looks like mobile and whatsapp is empty
+            if (empty($whatsapp) && preg_match('/^\+374[0-9]{8}$/', str_replace(' ', '', $phone))) {
+                 $whatsapp = str_replace([' ', '+'], '', $phone);
+            }
+            ?>
+            
+            <?php if(!empty($phone) || !empty($website) || !empty($instagram) || !empty($whatsapp)): ?>
             <div style="background: white; border-radius: 20px; padding: 1.5rem; box-shadow: var(--shadow-lg); border: 1px solid #f1f5f9; margin-bottom: 2rem;">
                 <h3 style="margin-top: 0; font-size: 1.2rem; margin-bottom: 1rem;">Contact</h3>
                 <div style="display: grid; gap: 10px;">
-                    <?php if(!empty($item['phone'])): ?>
-                        <a href="tel:<?= htmlspecialchars($item['phone']) ?>" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; background: #f1f5f9; color: var(--text-main); border-radius: 10px; text-decoration: none; font-weight: 500; transition: background 0.2s;">
-                            <span>📞</span> Call Now
+                    <?php if(!empty($phone)): ?>
+                        <a href="tel:<?= htmlspecialchars($phone) ?>" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; background: #f1f5f9; color: var(--text-main); border-radius: 10px; text-decoration: none; font-weight: 500; transition: background 0.2s;">
+                            <span>📞</span> <?= htmlspecialchars($phone) ?>
                         </a>
                     <?php endif; ?>
                     
-                    <?php if(!empty($item['instagram'])): ?>
-                        <a href="https://instagram.com/<?= htmlspecialchars($item['instagram']) ?>" target="_blank" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; background: #fww; background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); color: white; border-radius: 10px; text-decoration: none; font-weight: 500;">
+                    <?php if(!empty($website)): ?>
+                        <a href="<?= htmlspecialchars(strpos($website, 'http') === 0 ? $website : 'https://'.$website) ?>" target="_blank" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; background: #e2e8f0; color: var(--text-main); border-radius: 10px; text-decoration: none; font-weight: 500;">
+                            <span>🌐</span> Website
+                        </a>
+                    <?php endif; ?>
+                    
+                    <?php if(!empty($instagram)): ?>
+                        <a href="https://instagram.com/<?= htmlspecialchars($instagram) ?>" target="_blank" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; background: #fww; background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); color: white; border-radius: 10px; text-decoration: none; font-weight: 500;">
                             <span>📸</span> Instagram
                         </a>
                     <?php endif; ?>
 
-                    <?php if(!empty($item['whatsapp'])): ?>
-                        <a href="https://wa.me/<?= preg_replace('/[^0-9]/', '', $item['whatsapp']) ?>" target="_blank" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; background: #25D366; color: white; border-radius: 10px; text-decoration: none; font-weight: 500;">
+                    <?php if(!empty($whatsapp)): ?>
+                        <a href="https://wa.me/<?= preg_replace('/[^0-9]/', '', $whatsapp) ?>" target="_blank" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; background: #25D366; color: white; border-radius: 10px; text-decoration: none; font-weight: 500;">
                             <span>💬</span> WhatsApp
                         </a>
                     <?php endif; ?>
@@ -270,7 +289,13 @@
             
             <div style="margin-top: 2rem; background: #f8fafc; padding: 1.5rem; border-radius: 16px; border: 1px dashed #cbd5e1; text-align: center;">
                 <div style="font-weight: 600; margin-bottom: 0.5rem;">Opening Hours</div>
-                <div style="color: var(--text-muted); font-size: 0.9rem;"><?= htmlspecialchars($item['opening_hours'] ?? 'Daily: 10:00 AM - 10:00 PM') ?></div>
+                <div style="color: var(--text-muted); font-size: 0.9rem;">
+                    <?php if(!empty($item['working_hours'])): ?>
+                        <?= htmlspecialchars($item['working_hours']) ?>
+                    <?php else: ?>
+                        <?= htmlspecialchars($item['opening_hours'] ?? 'Daily: 10:00 AM - 10:00 PM') ?>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
 

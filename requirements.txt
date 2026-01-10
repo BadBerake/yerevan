@@ -1,0 +1,13 @@
+# Dependencies for 2GIS Scrapers
+# نصب: pip install -r requirements.txt
+
+# برای استفاده از هر دو اسکریپت
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+pandas>=2.0.0
+
+# فقط برای اسکریپت Selenium
+selenium>=4.15.0
+
+# اختیاری: برای parse کردن بهتر HTML
+lxml>=4.9.0

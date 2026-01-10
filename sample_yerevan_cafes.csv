@@ -1,0 +1,6 @@
+﻿id,name,name_ex,address,phone,website,latitude,longitude,working_hours,rating,reviews_count,rubrics
+70000001088928304,Achajour,Աշաջուր,"Yerevan, Mashtots Avenue, 18",+374 10 523456,https://achajour.am,40.186547,44.506545,Mon-Sun: 08:00-23:00,4.5,127,"Cafe, Restaurant"
+70000001088928305,Artbridge Bookstore Cafe,Արթբռիջ,"Yerevan, Abovyan Street, 20",+374 10 569874,https://artbridge.am,40.177528,44.513611,Mon-Sat: 09:00-21:00 | Sun: 10:00-20:00,4.7,89,"Cafe, Bookstore"
+70000001088928306,Cascade Cafe,Կասկադ,"Yerevan, Tamanyan Street, 10",+374 10 587456,,40.188056,44.516389,Mon-Sun: 10:00-22:00,4.3,215,Cafe
+70000001088928307,Dargett Craft Beer,Դարգետ,"Yerevan, Saryan Street, 21",+374 10 545789,https://dargett.am,40.185278,44.519444,Mon-Thu: 12:00-23:00 | Fri-Sun: 12:00-01:00,4.6,342,"Cafe, Bar, Brewery"
+70000001088928308,Loft Cafe,Լոֆթ,"Yerevan, Pushkin Street, 12",+374 10 598741,,40.180833,44.512500,Mon-Sun: 09:00-00:00,4.4,178,"Cafe, Coworking"
