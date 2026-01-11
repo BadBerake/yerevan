@@ -314,6 +314,14 @@ $router->get('/place/{id}', function($id) {
     view('detail', ['title' => $item['title'], 'item' => $item, 'gallery' => $gallery, 'reviews' => $reviews]); 
 });
 
+// Transport Route
+$router->get('/transport', function() {
+    global $db;
+    $stmt = $db->query("SELECT * FROM bus_routes ORDER BY route_number ASC");
+    $routes = $stmt->fetchAll();
+    view('transport', ['title' => 'Route Planner', 'routes' => $routes]);
+});
+
 // Map Page
 $router->get('/map', function() {
     global $db;

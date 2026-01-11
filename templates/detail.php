@@ -1,14 +1,14 @@
 <?php view('header', ['title' => $item['title']]); ?>
 
 <!-- Immersive Header -->
-<div style="height: 60vh; background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.8)), url('<?= htmlspecialchars($item['image_url'] ?? '') ?>') no-repeat center/cover; position: relative; margin-bottom: -100px;">
-    <div class="container" style="height: 100%; display: flex; align-items: flex-end; padding-bottom: 140px;">
+<div class="detail-header" style="background-image: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.8)), url('<?= htmlspecialchars($item['image_url'] ?? '') ?>');">
+    <div class="container detail-header-content">
         <div style="color: white; max-width: 800px;">
             <div style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; opacity: 0.9;">
                 <?= htmlspecialchars($item['category_name'] ?? 'Place') ?>
             </div>
-            <h1 style="font-size: 3.5rem; font-weight: 800; margin-bottom: 1rem; line-height: 1.1;"><?= htmlspecialchars(Lang::t($item['title_translations'], $item['title'])) ?></h1>
-            <div style="display: flex; gap: 20px; font-size: 1.1rem; opacity: 0.9;">
+            <h1 style="font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 800; margin-bottom: 1rem; line-height: 1.1;"><?= htmlspecialchars(Lang::t($item['title_translations'], $item['title'])) ?></h1>
+            <div style="display: flex; flex-wrap: wrap; gap: 20px; font-size: 1.1rem; opacity: 0.9;">
                 <span style="display: flex; align-items: center; gap: 5px;">📍 <?= htmlspecialchars($item['address'] ?? '') ?></span>
                 <span style="display: flex; align-items: center; gap: 5px;">⭐ 4.8 (120 reviews)</span>
             </div>
@@ -16,11 +16,11 @@
     </div>
 </div>
 
-<div class="container" style="padding: 0 1.5rem; position: relative; z-index: 10;">
-    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 3rem;">
+<div class="container" style="padding: 0 1.5rem;">
+    <div class="detail-grid">
         
         <!-- Main Content -->
-        <div style="background: white; border-radius: 20px; padding: 2.5rem; box-shadow: var(--shadow-lg);">
+        <div class="detail-main">
             <h2 style="font-size: 1.8rem; margin-bottom: 1.5rem; color: var(--text-main);">About this place</h2>
             <div style="line-height: 1.8; color: var(--text-muted); font-size: 1.05rem;">
                 <?= nl2br(htmlspecialchars(Lang::t($item['description_translations'], $item['description']))) ?>
@@ -49,7 +49,7 @@
             <?php if (!empty($amenitiesList)): ?>
             <div style="margin-top: 3rem;">
                 <h3 style="font-size: 1.5rem; margin-bottom: 1rem;">Amenities</h3>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px;">
                     <?php foreach($amenitiesList as $amenity): ?>
                         <?php if (isset($amenityLabels[$amenity])): ?>
                             <div style="display: flex; gap: 10px; color: var(--text-muted);"><span style="color: var(--primary);">✓</span> <?= $amenityLabels[$amenity] ?></div>
@@ -80,7 +80,7 @@
                     <div style="display: flex; flex-direction: column; gap: 20px; margin-bottom: 3rem;">
                         <?php foreach($reviews as $review): ?>
                             <div style="background: #f8fafc; padding: 1.5rem; border-radius: 16px; border-left: 4px solid var(--primary);">
-                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
                                     <div>
                                         <div style="font-weight: 600; color: var(--text-main); margin-bottom: 5px;"><?= htmlspecialchars($review['username']) ?></div>
                                         <div style="display: flex; gap: 3px;">
@@ -167,7 +167,7 @@
         </div>
 
         <!-- Sidebar -->
-        <div style="position: sticky; top: 120px; height: fit-content;">
+        <div class="detail-sidebar">
             
             <?php 
             // Check for contact info from new columns or standard fields

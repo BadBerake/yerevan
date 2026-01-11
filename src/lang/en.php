@@ -1,6 +1,7 @@
 <?php
 return [
     'home' => 'Home',
+    'transport' => 'Transport',
     'restaurants' => 'Restaurants',
     'cafes' => 'Cafes',
     'events' => 'Events',
@@ -172,4 +173,15 @@ return [
     'featured_places_subtitle' => 'Hand-picked top rated destinations in Yerevan',
     'platform_description' => 'YerevanGo is your ultimate guide to discovering the best of Yerevan.',
     'directions' => 'Directions',
+    'route_planner' => 'Route Planner',
+    'find_best_way' => 'Find the best way around Yerevan',
+    'origin_placeholder' => 'Origin (e.g. Opera House)',
+    'destination_placeholder' => 'Destination (e.g. Zvartnots Airport)',
+    'find_route' => 'Find Route',
+    'popular_routes' => 'Popular Routes',
+    'route_visualized' => 'Route Visualized',
+    'walking_driving_path' => '(Walking/Driving Path)',
+    'see_bus_connections' => 'See Bus Connections on Yandex',
+    'enter_origin_dest' => 'Please enter both origin and destination',
+    'location_not_found' => 'Location not found. Try adding Yerevan or be more specific.',
 ];
