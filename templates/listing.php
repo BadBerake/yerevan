@@ -30,7 +30,7 @@
             <div class="card-body">
                 <div class="card-title"><?= htmlspecialchars(Lang::t($item['title_translations'], $item['title'])) ?></div>
                 <div class="card-meta">
-                    <span style="color: var(--primary);">📍</span> <?= htmlspecialchars($item['address']) ?>
+                    <span style="color: var(--primary);">📍</span> <?= htmlspecialchars($item['address'] ?? '') ?>
                 </div>
                 <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
                     <?= htmlspecialchars(Lang::t($item['description_translations'], $item['description'] ?? '')) ?>

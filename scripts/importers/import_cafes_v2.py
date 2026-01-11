@@ -48,42 +48,27 @@ import shutil
 
 # ... (rest of imports)
 
-def download_image(url, slug):
-    """Downloads image from URL and saves to public/uploads."""
-    if not url:
-        return DEFAULT_IMAGE
-        
-    try:
-        # Create filename from slug
-        ext = 'jpg'
-        if '.png' in url: ext = 'png'
-        if '.webp' in url: ext = 'webp'
-        
-        filename = f"{slug}.{ext}"
-        filepath = f"public/uploads/{filename}"
-        db_path = f"/uploads/{filename}"
-        
-        # Check if already exists to avoid redownload (optional)
-        if os.path.exists(filepath):
-            return db_path
-            
-        print(f"   ⬇️ Downloading image for {slug}...")
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        }
-        res = requests.get(url, headers=headers, stream=True, timeout=10)
-        if res.status_code == 200:
-            with open(filepath, 'wb') as f:
-                res.raw.decode_content = True
-                shutil.copyfileobj(res.raw, f)
-            return db_path
-        else:
-            print(f"   ⚠️ Failed to download image: Status {res.status_code}")
-            return DEFAULT_IMAGE
-            
-    except Exception as e:
-        print(f"   ⚠️ Error downloading image: {e}")
-        return DEFAULT_IMAGE
+import random
+
+# Curated list of high-quality cafe images (Unsplash)
+CAFE_IMAGES = [
+    "https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=800&auto=format&fit=crop", # Pastry/Coffee
+    "https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=800&auto=format&fit=crop", # Classic Cafe
+    "https://images.unsplash.com/photo-1521017432531-fbd92d768814?q=80&w=800&auto=format&fit=crop", # Modern
+    "https://images.unsplash.com/photo-1596073419667-9d77d59f033f?q=80&w=800&auto=format&fit=crop", # Garden/Outdoor
+    "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?q=80&w=800&auto=format&fit=crop", # Cozy
+    "https://images.unsplash.com/photo-1453614512568-c4024d13c247?q=80&w=800&auto=format&fit=crop"  # Minimalist
+]
+
+def get_random_cafe_image(slug):
+    """Returns a random cafe image from the list. Uses slug seed for consistency."""
+    if not slug:
+        return CAFE_IMAGES[0]
+    
+    # Use slug char sum to pick consistent image
+    seed = sum(ord(c) for c in slug)
+    return CAFE_IMAGES[seed % len(CAFE_IMAGES)]
+
 
 def clean_2gis_url(url):
     """Removes tracking parameters from 2GIS URLs."""
@@ -178,11 +163,8 @@ def main():
                 'reviews_count': cafe.get('reviews_count')
             })
 
-            # Image Handling
-            raw_img_url = cafe.get('image_url', '')
-            final_image_path = DEFAULT_IMAGE
-            if raw_img_url:
-                 final_image_path = download_image(raw_img_url, slug)
+            # Image Handling - Use curated images for consistency and quality
+            final_image_path = get_random_cafe_image(slug)
 
             # Description
             description = f"Experience the atmosphere of {name} in Yerevan. A perfect spot to enjoy your time."

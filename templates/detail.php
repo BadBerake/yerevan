@@ -9,7 +9,7 @@
             </div>
             <h1 style="font-size: 3.5rem; font-weight: 800; margin-bottom: 1rem; line-height: 1.1;"><?= htmlspecialchars(Lang::t($item['title_translations'], $item['title'])) ?></h1>
             <div style="display: flex; gap: 20px; font-size: 1.1rem; opacity: 0.9;">
-                <span style="display: flex; align-items: center; gap: 5px;">📍 <?= htmlspecialchars($item['address']) ?></span>
+                <span style="display: flex; align-items: center; gap: 5px;">📍 <?= htmlspecialchars($item['address'] ?? '') ?></span>
                 <span style="display: flex; align-items: center; gap: 5px;">⭐ 4.8 (120 reviews)</span>
             </div>
         </div>

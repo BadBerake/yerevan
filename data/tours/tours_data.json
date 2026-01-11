@@ -1,0 +1,128 @@
+[
+    {
+        "name": "Myth & Stone: Garni Temple & Geghard Monastery",
+        "description": "A journey through time exploring the only standing Greco-Roman colonnaded building in Armenia and the incredible cave monastery of Geghard.",
+        "interest_tag": "History",
+        "estimated_time": "5 hours",
+        "difficulty": "Easy",
+        "image_url": "https://loremflickr.com/1200/800/garni,temple",
+        "itinerary": [
+            {
+                "time": "10:00 AM",
+                "title": "Departure from Yerevan",
+                "intro": "Meeting point at Republic Square.",
+                "lat": 40.1776,
+                "lng": 44.5123,
+                "image_url": "https://loremflickr.com/1200/800/yerevan,square"
+            },
+            {
+                "time": "10:45 AM",
+                "title": "Charents Arch",
+                "intro": "View of Ararat.",
+                "lat": 40.1575,
+                "lng": 44.6361,
+                "image_url": "https://loremflickr.com/1200/800/ararat,mountain"
+            },
+            {
+                "time": "11:30 AM",
+                "title": "Garni Temple",
+                "intro": "Pagan Temple of Garni.",
+                "lat": 40.1124,
+                "lng": 44.7297,
+                "image_url": "https://loremflickr.com/1200/800/garni,temple"
+            },
+            {
+                "time": "02:30 PM",
+                "title": "Geghard Monastery",
+                "intro": "Cave monastery.",
+                "lat": 40.1404,
+                "lng": 44.8183,
+                "image_url": "https://loremflickr.com/1200/800/geghard,monastery"
+            }
+        ]
+    },
+    {
+        "name": "Blue Pearl & Green Forests: Lake Sevan & Dilijan",
+        "description": "Escape the city heat and dive into the cool nature of Armenia.",
+        "interest_tag": "Nature",
+        "estimated_time": "8 hours",
+        "difficulty": "Medium",
+        "image_url": "https://loremflickr.com/1200/800/sevan,lake",
+        "itinerary": [
+            {
+                "time": "09:00 AM",
+                "title": "Departure",
+                "intro": "Start from Yerevan.",
+                "lat": 40.1776,
+                "lng": 44.5123,
+                "image_url": "https://loremflickr.com/1200/800/yerevan,city"
+            },
+            {
+                "time": "10:30 AM",
+                "title": "Sevanavank",
+                "intro": "Monastery on the peninsula.",
+                "lat": 40.5641,
+                "lng": 44.9634,
+                "image_url": "https://loremflickr.com/1200/800/sevanavank"
+            },
+            {
+                "time": "01:30 PM",
+                "title": "Old Dilijan",
+                "intro": "Historical street.",
+                "lat": 40.7370,
+                "lng": 44.8631,
+                "image_url": "https://loremflickr.com/1200/800/dilijan,street"
+            },
+            {
+                "time": "03:00 PM",
+                "title": "Haghartsin Monastery",
+                "intro": "Hidden gem in the forest.",
+                "lat": 40.8016,
+                "lng": 44.8906,
+                "image_url": "https://loremflickr.com/1200/800/haghartsin"
+            }
+        ]
+    },
+    {
+        "name": "Pink City Vibes: Yerevan Walking Tour",
+        "description": "Discover the hidden corners and grand avenues of the 2,800-year-old capital.",
+        "interest_tag": "City",
+        "estimated_time": "3 hours",
+        "difficulty": "Easy",
+        "image_url": "https://loremflickr.com/1200/800/yerevan,opera",
+        "itinerary": [
+            {
+                "time": "05:00 PM",
+                "title": "Republic Square",
+                "intro": "The heart of the city.",
+                "lat": 40.1776,
+                "lng": 44.5123,
+                "image_url": "https://loremflickr.com/1200/800/yerevan,fountains"
+            },
+            {
+                "time": "05:45 PM",
+                "title": "Northern Avenue",
+                "intro": "Modern pedestrian street.",
+                "lat": 40.1818,
+                "lng": 44.5146,
+                "image_url": "https://loremflickr.com/1200/800/yerevan,street"
+            },
+            {
+                "time": "06:30 PM",
+                "title": "Opera House",
+                "intro": "Cultural center.",
+                "lat": 40.1858,
+                "lng": 44.5152,
+                "image_url": "https://loremflickr.com/1200/800/yerevan,opera"
+            },
+            {
+                "time": "07:15 PM",
+                "title": "Cascade Complex",
+                "intro": "Best view of the city.",
+                "lat": 40.1927,
+                "lng": 44.5156,
+                "image_url": "https://loremflickr.com/1200/800/yerevan,cascade"
+            }
+        ]
+    }
+]

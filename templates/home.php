@@ -79,7 +79,7 @@
             <div class="card-body">
                 <div class="card-title"><?= htmlspecialchars(Lang::t($item['title_translations'], $item['title'])) ?></div>
                 <div class="card-meta">
-                    <span style="color: var(--primary);">📍</span> <?= htmlspecialchars($item['address']) ?>
+                    <span style="color: var(--primary);">📍</span> <?= htmlspecialchars($item['address'] ?? '') ?>
                 </div>
                 <div class="btn btn-outline" style="align-self: flex-start; margin-top: auto; padding: 5px 15px; font-size: 0.8rem;"><?= __('explore') ?></div>
             </div>

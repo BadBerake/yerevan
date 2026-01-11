@@ -93,7 +93,7 @@
                                     <?php endif; ?>
                                     <div>
                                         <h4 style="margin: 0 0 4px 0; font-size: 1.1rem;"><?= htmlspecialchars(Lang::t($stop['title_translations'], $stop['title'])) ?></h4>
-                                        <p style="margin: 0; font-size: 0.85rem; color: #94a3b8;"><?= htmlspecialchars($stop['address']) ?></p>
+                                        <p style="margin: 0; font-size: 0.85rem; color: #94a3b8;"><?= htmlspecialchars($stop['address'] ?? '') ?></p>
                                     </div>
                                 </div>
                                 
