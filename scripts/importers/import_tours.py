@@ -95,16 +95,17 @@ def main():
             
             description = tour['description']
             address = tour['address']
-            working_hours = tour['working_hours']
-            phone = tour['phone']
-            website = tour['website']
+            working_hours = tour.get('working_hours', 'N/A')
+            phone = tour.get('phone', 'N/A')
+            website = tour.get('website', 'N/A')
             
             # Save itinerary to metadata
             itinerary = tour.get('itinerary', [])
             metadata = json.dumps({
                 'type': 'tour', 
-                'difficulty': 'Easy',
-                'itinerary': itinerary
+                'difficulty': tour.get('difficulty', 'Medium'),
+                'itinerary': itinerary,
+                'price': tour.get('price', 'N/A')
             })
 
             cur.execute("""

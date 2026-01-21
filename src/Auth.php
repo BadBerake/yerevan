@@ -55,10 +55,8 @@ class Auth {
 
     public function getUser() {
         if (!$this->isLoggedIn()) return null;
-        return [
-            'id' => $_SESSION['user_id'],
-            'username' => $_SESSION['username'],
-            'role' => $_SESSION['role']
-        ];
+        
+        $stmt = $this->db->query("SELECT id, username, email, role, points, level, avatar_url FROM users WHERE id = ?", [$_SESSION['user_id']]);
+        return $stmt->fetch();
     }
 }

@@ -1,7 +1,8 @@
 <?php view('header', ['title' => $item['title']]); ?>
+<?php view('components/structured-data', ['item' => $item, 'reviews' => $reviews ?? []]); ?>
 
 <!-- Immersive Header -->
-<div class="detail-header" style="background-image: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.8)), url('<?= htmlspecialchars($item['image_url'] ?? '') ?>');">
+<div class="detail-header lazy-bg" data-src="<?= htmlspecialchars($item['image_url'] ?? '') ?>" style="background-image: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.8)); background-position: center; background-size: cover;">
     <div class="container detail-header-content">
         <div style="color: white; max-width: 800px;">
             <div style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; opacity: 0.9;">
@@ -14,17 +15,135 @@
             </div>
         </div>
     </div>
+    
+    <!-- Favorite Button Floating Action -->
+    <button id="favBtn" onclick="toggleFavorite(<?= $item['id'] ?>)" style="position: absolute; bottom: -25px; right: 40px; z-index: 20; background: white; border: none; width: 50px; height: 50px; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s;">
+        <svg id="favIcon" viewBox="0 0 24 24" style="width: 28px; height: 28px; fill: <?= ($is_favorited ?? false) ? '#ef4444' : 'none' ?>; stroke: #ef4444; stroke-width: 2px;">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+    </button>
 </div>
 
+<script>
+async function toggleFavorite(itemId) {
+    const btn = document.getElementById('favBtn');
+    const icon = document.getElementById('favIcon');
+    
+    // Animation feedback
+    btn.style.transform = 'scale(0.9)';
+    setTimeout(() => btn.style.transform = 'scale(1)', 150);
+
+    try {
+        const response = await fetch('/favorite/toggle', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ item_id: itemId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.status === 'added') {
+            icon.style.fill = '#ef4444';
+        } else if (data.status === 'removed') {
+            icon.style.fill = 'none';
+        } else if (data.status === 'error' && data.message === 'Not logged in') {
+            window.location.href = '/login';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+</script>
+
 <div class="container" style="padding: 0 1.5rem;">
+    <?php view('components/breadcrumbs', ['item' => $item]); ?>
     <div class="detail-grid">
         
         <!-- Main Content -->
         <div class="detail-main">
             <h2 style="font-size: 1.8rem; margin-bottom: 1.5rem; color: var(--text-main);">About this place</h2>
-            <div style="line-height: 1.8; color: var(--text-muted); font-size: 1.05rem;">
+            <div style="line-height: 1.8; color: var(--text-muted); font-size: 1.05rem; margin-bottom: 2rem;">
                 <?= nl2br(htmlspecialchars(Lang::t($item['description_translations'], $item['description']))) ?>
             </div>
+
+            <?php if ($item['category_name'] == 'Events' || isset($item['event_date'])): ?>
+            <div id="bookingWidget" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 20px; padding: 2rem; margin-bottom: 3rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.5rem;">Book Your Tickets</h3>
+                        <p style="margin: 5px 0 0; color: var(--text-muted); font-size: 0.9rem;">
+                            <i class="far fa-calendar-alt"></i> <?= date('F d, Y • H:i', strtotime($item['event_date'])) ?>
+                        </p>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="display: block; font-size: 1.5rem; font-weight: 800; color: var(--primary);">
+                            <?= $item['ticket_price'] > 0 ? number_format($item['ticket_price']) . ' AMD' : 'FREE' ?>
+                        </span>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">per person</span>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 20px; align-items: flex-end;">
+                    <div style="flex: 1;">
+                        <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px;">Number of Tickets</label>
+                        <select id="ticketCount" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 12px; background: white;">
+                            <?php for($i=1; $i<=10; $i++): ?>
+                                <option value="<?= $i ?>"><?= $i ?> <?= $i == 1 ? 'Ticket' : 'Tickets' ?></option>
+                            <?php endfor; ?>
+                        </select>
+                    </div>
+                    <div style="flex: 1.5;">
+                        <button onclick="bookTicket(<?= $item['id'] ?>)" id="bookBtn" class="btn btn-primary" style="width: 100%; padding: 14px; border-radius: 12px; font-weight: 700;">
+                            Book Now
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="bookingMessage" style="margin-top: 1rem; padding: 1rem; border-radius: 12px; display: none;"></div>
+            </div>
+
+            <script>
+            async function bookTicket(eventId) {
+                const btn = document.getElementById('bookBtn');
+                const msg = document.getElementById('bookingMessage');
+                const count = document.getElementById('ticketCount').value;
+
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
+                try {
+                    const response = await fetch('/api/events/book', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ event_id: eventId, count: count })
+                    });
+                    const data = await response.json();
+
+                    msg.style.display = 'block';
+                    if (data.status === 'success') {
+                        msg.style.background = '#f0fdf4';
+                        msg.style.color = '#15803d';
+                        msg.style.border = '1px solid #bbf7d0';
+                        msg.innerHTML = `<strong>Success!</strong> Your booking is confirmed. Code: <strong>${data.booking_code}</strong>. Check your dashboard for details.`;
+                        btn.innerHTML = 'Booked ✓';
+                    } else {
+                        msg.style.background = '#fef2f2';
+                        msg.style.color = '#b91c1c';
+                        msg.style.border = '1px solid #fecaca';
+                        msg.innerHTML = `<strong>Error:</strong> ${data.message || 'Something went wrong'}`;
+                        btn.disabled = false;
+                        btn.innerHTML = 'Book Now';
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    btn.disabled = false;
+                    btn.innerHTML = 'Book Now';
+                }
+            }
+            </script>
+            <?php endif; ?>
 
             <?php
             // Decode amenities
@@ -65,7 +184,7 @@
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
                     <?php foreach($gallery as $img): ?>
                         <div style="border-radius: 12px; overflow: hidden; height: 160px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                            <img src="<?= htmlspecialchars($img['image_url']) ?>" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                            <img src="<?= htmlspecialchars($img['image_url']) ?>" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -73,96 +192,35 @@
             <?php endif; ?>
 
             <!-- Reviews Section -->
-            <div style="margin-top: 4rem;">
-                <h3 style="font-size: 1.8rem; margin-bottom: 2rem;">Reviews (<?= count($reviews) ?>)</h3>
+            <div id="reviews" style="margin-top: 4rem;">
+                <h3 style="font-size: 1.8rem; margin-bottom: 2rem;">Reviews</h3>
                 
-                <?php if (!empty($reviews)): ?>
-                    <div style="display: flex; flex-direction: column; gap: 20px; margin-bottom: 3rem;">
+                <!-- Rating Summary -->
+                <?php view('components/rating-summary', [
+                    'item' => $item,
+                    'reviewService' => $reviewService
+                ]); ?>
+
+                <!-- Review Items -->
+                <div class="reviews-list" style="margin-top: 3rem;">
+                    <?php if (!empty($reviews)): ?>
                         <?php foreach($reviews as $review): ?>
-                            <div style="background: #f8fafc; padding: 1.5rem; border-radius: 16px; border-left: 4px solid var(--primary);">
-                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
-                                    <div>
-                                        <div style="font-weight: 600; color: var(--text-main); margin-bottom: 5px;"><?= htmlspecialchars($review['username']) ?></div>
-                                        <div style="display: flex; gap: 3px;">
-                                            <?php for($i = 1; $i <= 5; $i++): ?>
-                                                <span style="color: <?= $i <= $review['rating'] ? '#fbbf24' : '#e5e7eb' ?>; font-size: 1.2rem;">★</span>
-                                            <?php endfor; ?>
-                                        </div>
-                                    </div>
-                                    <div style="font-size: 0.85rem; color: var(--text-muted);">
-                                        <?= date('M d, Y', strtotime($review['created_at'])) ?>
-                                    </div>
-                                </div>
-                                <p style="color: var(--text-muted); line-height: 1.6; margin: 0;">
-                                    <?= nl2br(htmlspecialchars($review['comment'])) ?>
-                                </p>
-                            </div>
+                            <?php view('components/review-card', [
+                                'review' => $review,
+                                'userVotes' => $userVotes ?? []
+                            ]); ?>
                         <?php endforeach; ?>
-                    </div>
-                <?php endif; ?>
+                    <?php else: ?>
+                        <div style="text-align: center; padding: 3rem; background: #f8fafc; border-radius: 20px; border: 1px dashed #cbd5e1;">
+                            <p style="color: var(--text-muted);"><?= __('no_reviews_yet') ?></p>
+                        </div>
+                    <?php endif; ?>
+                </div>
 
                 <!-- Write Review Form -->
-                <?php global $auth; ?>
-                <?php if ($auth->isLoggedIn()): ?>
-                    <div style="background: white; padding: 2rem; border-radius: 20px; box-shadow: var(--shadow-lg); border: 1px solid #f1f5f9;">
-                        <h4 style="margin-top: 0; font-size: 1.3rem; margin-bottom: 1.5rem;">Write a Review</h4>
-                        
-                        <?php if (isset($_GET['msg']) && $_GET['msg'] == 'review_submitted'): ?>
-                            <div style="background: #dcfce7; color: #166534; padding: 15px; border-radius: 10px; margin-bottom: 1.5rem; text-align: center;">
-                                ✓ Review submitted successfully!
-                            </div>
-                        <?php endif; ?>
-                        
-                        <form action="/reviews/submit" method="POST">
-                            <input type="hidden" name="item_id" value="<?= $item['id'] ?>">
-                            
-                            <div style="margin-bottom: 1.5rem;">
-                                <label style="display: block; font-weight: 600; margin-bottom: 10px;">Rating</label>
-                                <div style="display: flex; gap: 5px; font-size: 2rem;">
-                                    <?php for($i = 1; $i <= 5; $i++): ?>
-                                        <label style="cursor: pointer;">
-                                            <input type="radio" name="rating" value="<?= $i ?>" required style="display: none;" onchange="updateStars(this)">
-                                            <span class="star" data-value="<?= $i ?>" style="color: #e5e7eb; transition: color 0.2s;">★</span>
-                                        </label>
-                                    <?php endfor; ?>
-                                </div>
-                            </div>
-                            
-                            <div style="margin-bottom: 1.5rem;">
-                                <label style="display: block; font-weight: 600; margin-bottom: 10px;">Your Review</label>
-                                <textarea name="comment" rows="4" required placeholder="Share your experience..." style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; font-family: inherit; resize: vertical;"></textarea>
-                            </div>
-                            
-                            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 15px; font-size: 1rem;">Submit Review</button>
-                        </form>
-                        
-                        <script>
-                        const stars = document.querySelectorAll('.star');
-                        stars.forEach(star => {
-                            star.addEventListener('click', function() {
-                                const value = parseInt(this.dataset.value);
-                                stars.forEach((s, idx) => {
-                                    s.style.color = (idx < value) ? '#fbbf24' : '#e5e7eb';
-                                });
-                                this.previousElementSibling.checked = true;
-                            });
-                        });
-                        
-                        function updateStars(input) {
-                            const value = parseInt(input.value);
-                            stars.forEach((s, idx) => {
-                                s.style.color = (idx < value) ? '#fbbf24' : '#e5e7eb';
-                            });
-                        }
-                        </script>
-                    </div>
-                <?php else: ?>
-                    <div style="background: #f8fafc; padding: 2rem; border-radius: 16px; text-align: center; border: 2px dashed #cbd5e1;">
-                        <p style="margin: 0; color: var(--text-muted);">
-                            <a href="/login" style="color: var(--primary); font-weight: 600;">Login</a> to write a review
-                        </p>
-                    </div>
-                <?php endif; ?>
+                <?php view('components/review-form', [
+                    'item' => $item
+                ]); ?>
             </div>
         </div>
 
@@ -210,6 +268,9 @@
                         </a>
                     <?php endif; ?>
                 </div>
+                
+                <!-- Share Buttons integrated in contact box for better flow -->
+                <?php view('components/share-buttons', ['item' => $item]); ?>
             </div>
             <?php endif; ?>
 
@@ -225,24 +286,19 @@
 
                 <?php if($auth->isLoggedIn()): ?>
                     <?php $user = $auth->getUser(); ?>
-                    <form action="/reservations/submit" method="POST">
+                    <form id="reservationForm" onsubmit="submitReservation(event)">
                         <input type="hidden" name="item_id" value="<?= $item['id'] ?>">
                         
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 1rem;">
                             <div>
                                 <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-main);">Name</label>
-                                <input type="text" name="name" value="<?= htmlspecialchars($user['username'] ?? '') ?>" required style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; outline: none; font-family: inherit;">
+                                <input type="text" name="name" value="<?= htmlspecialchars($user['username'] ?? '') ?>" disabled style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; outline: none; font-family: inherit; background: #f1f5f9; cursor: not-allowed;">
                             </div>
                             
                             <div>
                                 <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-main);">Email</label>
-                                <input type="email" name="email" value="<?= htmlspecialchars($user['email'] ?? '') ?>" required style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; outline: none; font-family: inherit;">
+                                <input type="email" name="email" value="<?= htmlspecialchars($user['email'] ?? '') ?>" disabled style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; outline: none; font-family: inherit; background: #f1f5f9; cursor: not-allowed;">
                             </div>
-                        </div>
-                        
-                        <div style="margin-bottom: 1rem;">
-                            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-main);">Phone</label>
-                            <input type="tel" name="phone" required placeholder="+374 XX XXXXXX" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; outline: none; font-family: inherit;">
                         </div>
                         
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 1rem;">
@@ -275,14 +331,62 @@
                             <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-main);">Special Requests (Optional)</label>
                             <textarea name="special_requests" rows="3" placeholder="Any dietary restrictions, special occasions, seating preferences..." style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; outline: none; font-family: inherit; resize: vertical;"></textarea>
                         </div>
+                        
+                        <div id="reservationMsg" style="margin-bottom: 15px; display: none; padding: 10px; border-radius: 8px;"></div>
 
-                        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 15px; font-size: 1rem;">Reserve Table</button>
+                        <button type="submit" id="reserveBtn" class="btn btn-primary" style="width: 100%; padding: 15px; font-size: 1rem;">Reserve Table</button>
                         <div style="text-align: center; margin-top: 1rem; font-size: 0.8rem; color: var(--text-muted);">No payment required • Free cancellation</div>
                     </form>
+
+                    <script>
+                    async function submitReservation(e) {
+                        e.preventDefault();
+                        const form = e.target;
+                        const btn = document.getElementById('reserveBtn');
+                        const msg = document.getElementById('reservationMsg');
+                        const formData = new FormData(form);
+                        
+                        btn.disabled = true;
+                        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                        msg.style.display = 'none';
+
+                        try {
+                            const response = await fetch('/api/bookings/create', {
+                                method: 'POST',
+                                body: formData
+                            });
+                            
+                            const data = await response.json();
+                            
+                            msg.style.display = 'block';
+                            if (data.status === 'success') {
+                                msg.style.background = '#dcfce7';
+                                msg.style.color = '#166534';
+                                msg.innerHTML = '🎉 Reservation Confirmed!';
+                                btn.innerHTML = 'Reserved ✓';
+                                setTimeout(() => window.location.href = '/dashboard', 2000);
+                            } else {
+                                msg.style.background = '#fee2e2';
+                                msg.style.color = '#991b1b';
+                                msg.innerHTML = data.message || 'Error occurred';
+                                btn.disabled = false;
+                                btn.innerHTML = 'Reserve Table';
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            msg.style.display = 'block';
+                            msg.style.background = '#fee2e2';
+                            msg.style.color = '#991b1b';
+                            msg.innerHTML = 'Network error. Please try again.';
+                            btn.disabled = false;
+                            btn.innerHTML = 'Reserve Table';
+                        }
+                    }
+                    </script>
                 <?php else: ?>
                     <div style="background: #f8fafc; padding: 2rem; border-radius: 12px; text-align: center; border: 2px dashed #cbd5e1;">
                         <p style="margin: 0; color: var(--text-muted); margin-bottom: 1rem;">Please log in to make a reservation</p>
-                        <a href="/login" class="btn btn-primary">Login</a>
+                        <a href="/login?redirect=<?= urlencode($_SERVER['REQUEST_URI']) ?>" class="btn btn-primary">Login</a>
                     </div>
                 <?php endif; ?>
             </div>

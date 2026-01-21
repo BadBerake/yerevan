@@ -46,7 +46,7 @@
         <?php foreach ($routes as $route): ?>
             <a href="/route/<?= $route['slug'] ?>" style="text-decoration: none; color: inherit;">
                 <div class="card" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
-                    <div style="height: 180px; background: #f1f5f9 url('<?= $route['image_url'] ?: 'https://via.placeholder.com/500x300' ?>') center/cover;"></div>
+                    <div class="lazy-bg" data-src="<?= $route['image_url'] ?: 'https://via.placeholder.com/500x300' ?>" style="height: 180px; background-position: center; background-size: cover;"></div>
                     <div style="padding: 1.5rem;">
                         <div style="color: var(--primary); font-weight: 800; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem;"><?= htmlspecialchars($route['interest_tag'] ?: 'Local Guide') ?></div>
                         <h3 style="margin: 0 0 0.5rem 0; font-size: 1.2rem; font-weight: 700;"><?= htmlspecialchars(Lang::t($route['name_translations'], $route['name'])) ?></h3>
@@ -75,7 +75,7 @@
     <div class="grid">
         <?php foreach ($featured as $item): ?>
         <a href="/place/<?= $item['id'] ?>" class="card" style="text-decoration: none; color: inherit;">
-            <div class="card-img" style="background-image: url('<?= htmlspecialchars($item['image_url'] ?? '') ?>');"></div>
+            <div class="card-img lazy-bg" data-src="<?= htmlspecialchars($item['image_url'] ?? '') ?>" style="background-position: center; background-size: cover;"></div>
             <div class="card-body">
                 <div class="card-title"><?= htmlspecialchars(Lang::t($item['title_translations'], $item['title'])) ?></div>
                 <div class="card-meta">

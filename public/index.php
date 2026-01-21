@@ -5,18 +5,54 @@ require_once __DIR__ . '/../src/Database.php';
 require_once __DIR__ . '/../src/Router.php';
 require_once __DIR__ . '/../src/Auth.php';
 require_once __DIR__ . '/../src/Lang.php';
+require_once __DIR__ . '/../src/SearchService.php';
+require_once __DIR__ . '/../src/ReviewService.php';
+require_once __DIR__ . '/../src/HistoryService.php';
+require_once __DIR__ . '/../src/CommunityService.php';
+require_once __DIR__ . '/../src/EventService.php';
+require_once __DIR__ . '/../src/GamificationService.php';
+require_once __DIR__ . '/../src/AnalyticsService.php';
+require_once __DIR__ . '/../src/EmailService.php';
+
+require_once __DIR__ . '/../src/AdminService.php';
+require_once __DIR__ . '/../src/BookingService.php'; // New
+require_once __DIR__ . '/../src/Middleware/AdminMiddleware.php';
 
 $config = require __DIR__ . '/../src/config.php';
 $db = new Database($config['db']);
 Lang::init();
 $auth = new Auth($db);
+$searchService = new \App\Services\SearchService($db);
+$reviewService = new \App\Services\ReviewService($db);
+$historyService = new \App\Services\HistoryService($db);
+$communityService = new \App\Services\CommunityService($db);
+$eventService = new \App\Services\EventService($db);
+$gamificationService = new \App\Services\GamificationService($db);
+$analyticsService = new \App\Services\AnalyticsService($db);
+$emailService = new \App\Services\EmailService($db);
+$adminService = new \App\Services\AdminService($db);
+$bookingService = new \App\Services\BookingService($db); // New
+$adminMiddleware = new \App\Middleware\AdminMiddleware($auth);
 $router = new Router();
 
 // Middleware helper to make auth available in views
 function view($name, $data = []) {
-    global $auth; 
+    global $auth, $db, $searchService, $reviewService, $historyService, $communityService, $eventService, $gamificationService, $analyticsService, $emailService; 
     extract($data);
+    
+    // Log Page View
+    $user = $auth->isLoggedIn() ? $auth->getUser() : null;
+    $analyticsService->logEvent($user ? $user['id'] : null, $_SERVER['REQUEST_URI'], 'view', [
+        'template' => $name,
+        'item_id' => $data['item']['id'] ?? null
+    ]);
+
     require __DIR__ . "/../templates/{$name}.php";
+}
+
+function global_auth() {
+    global $auth;
+    return $auth;
 }
 
 // Routes
@@ -51,41 +87,143 @@ $router->get('/cafes', function() {
 });
 
 $router->get('/events', function() {
-    global $db;
-    $stmt = $db->query("SELECT i.* FROM items i JOIN categories c ON i.category_id = c.id WHERE c.slug = 'events' AND i.is_approved = TRUE");
-    $items = $stmt->fetchAll();
-    view('listing', ['title' => __('events_title'), 'items' => $items, 'type' => 'event']);
+    global $eventService;
+    $events = $eventService->getUpcomingEvents(20);
+    view('events/index', [
+        'title' => __('events_title'),
+        'events' => $events
+    ]);
+});
+
+$router->get('/leaderboard', function() {
+    global $gamificationService;
+    $communityLeaderboard = $gamificationService->getLeaderboard(20);
+    view('leaderboard', [
+        'title' => 'Community Leaderboard',
+        'communityLeaderboard' => $communityLeaderboard
+    ]);
 });
 
 // Search Route
 $router->get('/search', function() {
-    global $db;
+    global $searchService;
     $query = $_GET['q'] ?? '';
     
-    if (empty($query)) {
-        header('Location: /');
-        exit;
-    }
+    // Get all GET parameters for filters
+    $filters = $_GET;
+    unset($filters['q']);
     
-    // Search in title, description, and address
-    $searchTerm = '%' . $query . '%';
-    $stmt = $db->query(
-        "SELECT i.*, c.name as category_name 
-         FROM items i 
-         LEFT JOIN categories c ON i.category_id = c.id 
-         WHERE i.is_approved = TRUE 
-         AND (i.title ILIKE ? OR i.description ILIKE ? OR i.address ILIKE ?)
-         ORDER BY i.created_at DESC",
-        [$searchTerm, $searchTerm, $searchTerm]
-    );
-    $items = $stmt->fetchAll();
+    $items = $searchService->search($query, $filters);
+    $totalCount = $searchService->getSearchCount($query, $filters);
     
     view('listing', [
-        'title' => __('search_results_title') . ' "' . htmlspecialchars($query) . '"',
+        'title' => !empty($query) ? __('search_results_title') . ' "' . htmlspecialchars($query) . '"' : __('explore'),
         'items' => $items,
+        'totalCount' => $totalCount,
         'type' => 'search',
         'query' => $query
     ]);
+});
+
+// Search API Routes
+$router->get('/api/search', function() {
+    global $searchService;
+    header('Content-Type: application/json');
+    
+    $query = $_GET['q'] ?? '';
+    $filters = $_GET;
+    unset($filters['q']);
+    
+    $results = $searchService->search($query, $filters);
+    $count = $searchService->getSearchCount($query, $filters);
+    
+    echo json_encode(['results' => $results, 'count' => $count]);
+    exit;
+});
+
+$router->get('/api/search/suggestions', function() {
+    global $searchService;
+    header('Content-Type: application/json');
+    $q = $_GET['q'] ?? '';
+    
+    $suggestions = $searchService->getSuggestions($q);
+    echo json_encode($suggestions);
+    exit;
+});
+
+$router->post('/api/search/history', function() {
+    global $searchService, $auth;
+    header('Content-Type: application/json');
+    
+    $input = json_decode(file_get_contents('php://input'), true);
+    $query = $input['query'] ?? '';
+    $filters = $input['filters'] ?? [];
+    $count = $input['count'] ?? 0;
+    
+    $userId = $auth->isLoggedIn() ? $auth->getUser()['id'] : null;
+    $searchService->saveSearchHistory($userId, $query, $filters, $count);
+    
+    echo json_encode(['status' => 'success']);
+    exit;
+});
+
+// Newsletter API
+$router->post('/api/newsletter/subscribe', function() {
+    global $emailService, $auth;
+    header('Content-Type: application/json');
+    $email = $_POST['email'] ?? '';
+    $userId = $auth->isLoggedIn() ? $auth->getUser()['id'] : null;
+    
+    $result = $emailService->subscribe($email, $userId);
+    echo json_encode($result);
+    exit;
+});
+
+
+// Review API Routes
+$router->post('/api/reviews/create', function() {
+    global $reviewService, $auth, $gamificationService;
+    header('Content-Type: application/json');
+    
+    if (!$auth->isLoggedIn()) {
+        http_response_code(401);
+        echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
+        exit;
+    }
+    
+    $userId = $auth->getUser()['id'];
+    $itemId = (int)$_POST['item_id'];
+    $rating = (int)$_POST['rating'];
+    $title = $_POST['title'] ?? '';
+    $content = $_POST['content'] ?? '';
+    $images = $_POST['images'] ?? []; // Array of image URLs (already uploaded or from external)
+    
+    $result = $reviewService->createReview($userId, $itemId, $rating, $title, $content, $images);
+    if ($result) {
+        $gamificationService->awardPoints($userId, 'review_submitted');
+    }
+    echo json_encode($result);
+    exit;
+});
+
+$router->post('/api/reviews/vote', function() {
+    global $reviewService, $auth;
+    header('Content-Type: application/json');
+    
+    if (!$auth->isLoggedIn()) {
+        http_response_code(401);
+        echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
+        exit;
+    }
+    
+    $userId = $auth->getUser()['id'];
+    $input = json_decode(file_get_contents('php://input'), true);
+    $reviewId = (int)($input['review_id'] ?? 0);
+    $voteType = $input['vote_type'] ?? 'helpful';
+    
+    $result = $reviewService->voteReview($userId, $reviewId, $voteType);
+    echo json_encode($result);
+    exit;
 });
 
 // Auth Routes (GET)
@@ -116,6 +254,13 @@ $router->post('/register', function() {
     $username = $_POST['username'] ?? '';
     $email = $_POST['email'] ?? '';
     $password = $_POST['password'] ?? '';
+    
+    // Username Blacklist
+    $blacklist = ['admin', 'administrator', 'root', 'support', 'superuser', 'yerevango', 'system', 'mod', 'moderator'];
+    if (in_array(strtolower($username), $blacklist)) {
+        view('register', ['title' => __('create_account'), 'error' => 'This username is not allowed.']);
+        return;
+    }
     
     if ($auth->register($username, $email, $password)) {
         // Auto-login after registration
@@ -208,6 +353,22 @@ $router->get('/route/{slug}', function($slug) {
     ]);
 });
 
+$router->post('/verify/request', function() {
+    global $auth, $db;
+    if (!$auth->isLoggedIn()) { header('Location: /login'); exit; }
+    
+    $user = $auth->getUser();
+    
+    // Simulate Payment Processing...
+    // In a real app, we'd redirect to Stripe/PayPal here.
+    // For now, we auto-verify.
+    
+    $db->query("UPDATE users SET is_verified = TRUE WHERE id = ?", [$user['id']]);
+    
+    header('Location: /dashboard?msg=verified');
+    exit;
+});
+
 $router->get('/logout', function() {
     global $auth;
     $auth->logout();
@@ -217,36 +378,34 @@ $router->get('/logout', function() {
 
 // User Panel
 $router->get('/dashboard', function() {
-    global $auth, $db;
-    if (!$auth->isLoggedIn()) { header('Location: /login'); exit; }
-    
-    $user = $auth->getUser();
-    // Get full user data including interests
-    $stmt = $db->query("SELECT * FROM users WHERE id = ?", [$user['id']]);
-    $fullUser = $stmt->fetch();
-    
-    $interests = json_decode($fullUser['interests'] ?? '[]', true);
-    $recommendations = [];
-    
-    if (!empty($interests)) {
-        // Build query based on interests
-        $placeholders = implode(',', array_fill(0, count($interests), '?'));
-        $stmt = $db->query(
-            "SELECT i.*, c.name as category_name 
-             FROM items i 
-             JOIN categories c ON i.category_id = c.id 
-             WHERE i.is_approved = TRUE 
-             AND c.slug IN ($placeholders)
-             ORDER BY RANDOM() LIMIT 4", 
-            $interests
-        );
-        $recommendations = $stmt->fetchAll();
+    global $auth, $db, $historyService, $gamificationService, $bookingService;
+    if (!$auth->isLoggedIn()) {
+        header('Location: /login');
+        exit;
     }
     
+    $user = $auth->getUser();
+    $userId = $user['id'];
+    
+    // Refresh user data
+    $stmtUser = $db->query("SELECT * FROM users WHERE id = ?", [$userId]);
+    $userFull = $stmtUser->fetch();
+    
+    // Fetch user stats & lists
+    $stats = $historyService->getUserStats($userId);
+    $favorites = $historyService->getFavorites($userId);
+    $history = $historyService->getRecentlyViewed($userId);
+    $achievements = $gamificationService->getUserAchievements($userId);
+    $bookings = $bookingService->getUserBookings($userId); // New
+    
     view('dashboard', [
-        'title' => 'My Dashboard', 
-        'user' => $fullUser, 
-        'recommendations' => $recommendations
+        'title' => 'Dashboard',
+        'user' => $userFull, 
+        'stats' => $stats,
+        'favorites' => $favorites, 
+        'history' => $history,
+        'achievements' => $achievements,
+        'bookings' => $bookings // New
     ]);
 });
 
@@ -280,15 +439,88 @@ $router->post('/add-place', function() {
     exit;
 });
 
+// Profile Update
+$router->post('/dashboard/update-profile', function() {
+    global $auth, $db;
+    if (!$auth->isLoggedIn()) { header('Location: /login'); exit; }
+    
+    $user = $auth->getUser();
+    $updates = [];
+    $params = [];
+    
+    // Handle Avatar
+    if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] == 0) {
+        $uploaded = uploadFile($_FILES['avatar'], 'avatars');
+        if ($uploaded) {
+            $updates[] = "avatar_url = ?";
+            $params[] = $uploaded;
+        }
+    }
+    
+    // Handle Text Fields
+    if (isset($_POST['phone'])) {
+        $updates[] = "phone = ?";
+        $params[] = $_POST['phone'];
+    }
+    if (isset($_POST['country'])) {
+        $updates[] = "country = ?";
+        $params[] = $_POST['country'];
+    }
+    if (isset($_POST['bio'])) {
+        $updates[] = "bio = ?";
+        $params[] = $_POST['bio'];
+    }
+    
+    if (!empty($updates)) {
+        $sql = "UPDATE users SET " . implode(', ', $updates) . " WHERE id = ?";
+        $params[] = $user['id'];
+        $db->query($sql, $params);
+    }
+    
+    header('Location: /dashboard');
+    exit;
+});
+
+// Create/Remove Favorite
+$router->post('/favorite/toggle', function() {
+    global $auth, $historyService;
+    header('Content-Type: application/json');
+    
+    if (!$auth->isLoggedIn()) { 
+        http_response_code(401);
+        echo json_encode(['status' => 'error', 'message' => 'Not logged in']);
+        exit;
+    }
+    
+    $input = json_decode(file_get_contents('php://input'), true);
+    $itemId = $input['item_id'] ?? null;
+    $userId = $auth->getUser()['id'];
+    
+    if (!$itemId) {
+        echo json_encode(['status' => 'error']);
+        exit;
+    }
+
+    $status = $historyService->toggleFavorite((int)$userId, (int)$itemId);
+    echo json_encode(['status' => $status]);
+    exit;
+});
+
 $router->get('/place/{id}', function($id) {
     global $db;
     
-    // Fetch Item
-    $stmt = $db->query("SELECT i.*, c.name as category_name, u.username 
-                        FROM items i 
-                        LEFT JOIN categories c ON i.category_id = c.id 
-                        LEFT JOIN users u ON i.user_id = u.id 
-                        WHERE i.id = ?", [$id]);
+    // Fetch Item - Support both ID and Slug
+    if (is_numeric($id)) {
+        $sql = "SELECT i.*, c.name as category_name, u.username FROM items i 
+                LEFT JOIN categories c ON i.category_id = c.id 
+                LEFT JOIN users u ON i.user_id = u.id WHERE i.id = ?";
+    } else {
+        $sql = "SELECT i.*, c.name as category_name, u.username FROM items i 
+                LEFT JOIN categories c ON i.category_id = c.id 
+                LEFT JOIN users u ON i.user_id = u.id WHERE i.slug = ?";
+    }
+    
+    $stmt = $db->query($sql, [$id]);
     $item = $stmt->fetch();
 
     if (!$item) {
@@ -296,30 +528,53 @@ $router->get('/place/{id}', function($id) {
         echo "Place not found";
         return;
     }
+    
+    $id = $item['id']; // Use actual ID for subsequent queries
 
     // Fetch Gallery
     $stmtGal = $db->query("SELECT * FROM item_images WHERE item_id = ? ORDER BY created_at DESC", [$id]);
     $gallery = $stmtGal->fetchAll();
+    // Fetch Reviews via Service
+    global $reviewService, $historyService;
+    $reviews = $reviewService->getReviewsByItem((int)$id);
     
-    // Fetch Reviews
-    $stmtRev = $db->query("
-        SELECT r.*, u.username 
-        FROM reviews r 
-        JOIN users u ON r.user_id = u.id 
-        WHERE r.item_id = ? 
-        ORDER BY r.created_at DESC
-    ", [$id]);
-    $reviews = $stmtRev->fetchAll();
+    // Check Favorite Status & Record Visit
+    global $auth;
+    $is_favorited = false;
+    if ($auth->isLoggedIn()) {
+        $userId = $auth->getUser()['id'];
+        
+        // Favorite status
+        $stmtFav = $db->query("SELECT id FROM favorites WHERE user_id = ? AND item_id = ?", [$userId, $id]);
+        if ($stmtFav->fetch()) {
+            $is_favorited = true;
+        }
+        
+        // Record visit history
+        $historyService->recordVisit($userId, (int)$id);
+    }
     
-    view('detail', ['title' => $item['title'], 'item' => $item, 'gallery' => $gallery, 'reviews' => $reviews]); 
+    view('detail', [
+        'title' => $item['title'], 
+        'item' => $item, 
+        'gallery' => $gallery, 
+        'reviews' => $reviews,
+        'is_favorited' => $is_favorited,
+        'reviewService' => $reviewService
+    ]); 
 });
 
 // Transport Route
 $router->get('/transport', function() {
     global $db;
-    $stmt = $db->query("SELECT * FROM bus_routes ORDER BY route_number ASC");
+    $stmt = $db->query("SELECT * FROM bus_routes_final ORDER BY route_number ASC");
     $routes = $stmt->fetchAll();
     view('transport', ['title' => 'Route Planner', 'routes' => $routes]);
+});
+
+// Run Bus Data Migration
+$router->get('/run-bus-final', function() {
+    require __DIR__ . '/start_bus_data_migration_v3.php';
 });
 
 // Map Page
@@ -1476,6 +1731,290 @@ $router->post('/admin/communities/delete', function() {
     
     $db->query("DELETE FROM communities WHERE id = ?", [$_POST['id']]);
     header('Location: /admin/communities');
+    exit;
+});
+
+// Sitemap Route (SEO)
+$router->get('/sitemap.xml', function() {
+    global $db;
+    
+    require_once __DIR__ . '/../src/SEOService.php';
+    $seoService = new \App\Services\SEOService();
+    
+    header('Content-Type: application/xml; charset=utf-8');
+    
+    // Build URLs array
+    $urls = [
+        ['loc' => '/', 'changefreq' => 'daily', 'priority' => '1.0'],
+        ['loc' => '/restaurants', 'changefreq' => 'daily', 'priority' => '0.9'],
+        ['loc' => '/cafes', 'changefreq' => 'daily', 'priority' => '0.9'],
+        ['loc' => '/events', 'changefreq' => 'daily', 'priority' => '0.9'],
+        ['loc' => '/map', 'changefreq' => 'weekly', 'priority' => '0.8'],
+        ['loc' => '/transport', 'changefreq' => 'weekly', 'priority' => '0.8'],
+        ['loc' => '/explore', 'changefreq' => 'weekly', 'priority' => '0.8'],
+        ['loc' => '/about', 'changefreq' => 'monthly', 'priority' => '0.6'],
+        ['loc' => '/contact', 'changefreq' => 'monthly', 'priority' => '0.6'],
+    ];
+    
+    // Add all places
+    $stmt = $db->query("SELECT id, slug, created_at FROM items WHERE is_approved = TRUE");
+    while ($row = $stmt->fetch()) {
+        $urls[] = [
+            'loc' => '/place/' . $row['id'],
+            'lastmod' => date('Y-m-d', strtotime($row['created_at'] ?? 'now')),
+            'changefreq' => 'weekly',
+            'priority' => '0.7'
+        ];
+    }
+    
+    // Add all routes
+    $stmt = $db->query("SELECT slug, created_at FROM tour_routes");
+    while ($row = $stmt->fetch()) {
+        $urls[] = [
+            'loc' => '/route/' . $row['slug'],
+            'lastmod' => date('Y-m-d', strtotime($row['created_at'] ?? 'now')),
+            'changefreq' => 'monthly',
+            'priority' => '0.6'
+        ];
+    }
+    
+    echo $seoService->generateSitemap($urls);
+    exit;
+});
+
+// --- Community Hub Routes ---
+
+$router->get('/communities', function() {
+    global $communityService;
+    $groups = $communityService->getGroups();
+    view('community/index', [
+        'title' => 'Community Hub',
+        'groups' => $groups
+    ]);
+});
+
+$router->get('/communities/{slug}', function($slug) {
+    global $communityService, $auth;
+    $group = $communityService->getGroupBySlug($slug);
+    
+    if (!$group) {
+        http_response_code(404);
+        echo "Community group not found";
+        return;
+    }
+    
+    $posts = $communityService->getGroupPosts($group['id']);
+    $isMember = false;
+    if ($auth->isLoggedIn()) {
+        $isMember = $communityService->isMember($group['id'], $auth->getUser()['id']);
+    }
+    
+    view('community/group', [
+        'title' => $group['name'],
+        'group' => $group,
+        'posts' => $posts,
+        'isMember' => $isMember
+    ]);
+});
+
+$router->post('/api/community/join', function() {
+    global $auth, $communityService, $gamificationService;
+    header('Content-Type: application/json');
+    if (!$auth->isLoggedIn()) {
+        echo json_encode(['status' => 'error', 'message' => 'Not logged in']);
+        exit;
+    }
+    
+    $input = json_decode(file_get_contents('php://input'), true);
+    $groupId = $input['group_id'];
+    $userId = $auth->getUser()['id'];
+    
+    if ($communityService->joinGroup((int)$groupId, $userId)) {
+        $gamificationService->awardPoints($userId, 'group_joined');
+        echo json_encode(['status' => 'success']);
+    } else {
+        echo json_encode(['status' => 'error', 'message' => 'Failed to join']);
+    }
+    exit;
+});
+
+$router->post('/api/community/post', function() {
+    global $auth, $communityService, $gamificationService;
+    header('Content-Type: application/json');
+    if (!$auth->isLoggedIn()) {
+        echo json_encode(['status' => 'error', 'message' => 'Not logged in']);
+        exit;
+    }
+    
+    $groupId = $_POST['group_id'];
+    $userId = $auth->getUser()['id'];
+    $content = $_POST['content'];
+    $title = $_POST['title'] ?? null;
+    
+    $postId = $communityService->createPost((int)$groupId, $userId, [
+        'content' => $content,
+        'title' => $title
+    ]);
+    
+    if ($postId) {
+        $gamificationService->awardPoints($userId, 'post_created');
+        echo json_encode(['status' => 'success', 'post_id' => $postId]);
+    } else {
+        echo json_encode(['status' => 'error']);
+    }
+    exit;
+});
+
+$router->post('/api/events/book', function() {
+    global $auth, $eventService, $gamificationService;
+    header('Content-Type: application/json');
+    if (!$auth->isLoggedIn()) {
+        echo json_encode(['status' => 'error', 'message' => 'Not logged in']);
+        exit;
+    }
+    
+    $input = json_decode(file_get_contents('php://input'), true);
+    $eventId = $input['event_id'] ?? null;
+    $count = $input['count'] ?? 1;
+    $user = $auth->getUser();
+    $userId = $user ? $user['id'] : null;
+    
+    if (!$eventId || !$userId) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid data or session']);
+        exit;
+    }
+    
+    try {
+        $code = $eventService->bookTicket($userId, (int)$eventId, (int)$count);
+        
+        if ($code) {
+            $gamificationService->awardPoints($userId, 'ticket_booked');
+            echo json_encode(['status' => 'success', 'booking_code' => $code]);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Booking failed']);
+        }
+    } catch (Throwable $e) {
+        error_log("Booking Error: " . $e->getMessage());
+        echo json_encode(['status' => 'error', 'message' => 'Internal server error: ' . $e->getMessage()]);
+    }
+    exit;
+});
+
+
+$router->get('/sitemap.xml', function() {
+    global $db;
+    header('Content-Type: application/xml; charset=utf-8');
+    
+    $baseUrl = 'https://' . $_SERVER['HTTP_HOST'];
+    $xml = '<?xml version="1.0" encoding="UTF-8"?>';
+    $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+    
+    // Static Pages
+    $pages = ['', '/restaurants', '/cafes', '/events', '/explore', '/map', '/transport', '/communities', '/leaderboard'];
+    foreach ($pages as $page) {
+        $xml .= '<url><loc>' . $baseUrl . $page . '</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>';
+    }
+    
+    // Places
+    $stmt = $db->query("SELECT id, slug, created_at FROM items WHERE is_approved = TRUE");
+    while ($row = $stmt->fetch()) {
+        $url = $baseUrl . '/place/' . ($row['slug'] ?: $row['id']);
+        $xml .= '<url><loc>' . $url . '</loc><lastmod>' . date('Y-m-d', strtotime($row['created_at'] ?? 'now')) . '</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>';
+    }
+    
+    // Routes
+    $stmt = $db->query("SELECT slug, created_at FROM tour_routes");
+    while ($row = $stmt->fetch()) {
+        $xml .= '<url><loc>' . $baseUrl . '/route/' . $row['slug'] . '</loc><lastmod>' . date('Y-m-d', strtotime($row['created_at'] ?? 'now')) . '</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>';
+    }
+    
+    $xml .= '</urlset>';
+    echo $xml;
+    exit;
+});
+
+// --- Admin Routes ---
+
+$router->get('/admin', function() {
+    global $adminMiddleware, $adminService;
+    $adminMiddleware->handle();
+    
+    $stats = $adminService->getDashboardStats();
+    $recentActivity = $adminService->getRecentActivity(10);
+    
+    view('admin/dashboard', [
+        'title' => 'Dashboard',
+        'active' => 'dashboard',
+        'stats' => $stats,
+        'recentActivity' => $recentActivity
+    ]);
+});
+
+$router->get('/admin/users', function() {
+    global $adminMiddleware, $adminService;
+    $adminMiddleware->handle();
+    
+    $users = $adminService->getAllUsers(100);
+    
+    view('admin/users', [
+        'title' => 'User Management',
+        'active' => 'users',
+        'users' => $users
+    ]);
+});
+
+$router->post('/admin/users/action', function() {
+    global $adminMiddleware, $adminService;
+    $adminMiddleware->handle();
+    
+    $action = $_POST['action'] ?? null;
+    $userId = $_POST['user_id'] ?? null;
+    
+    if ($userId && $action === 'verify') {
+        $adminService->verifyUser($userId);
+    } elseif ($userId && $action === 'ban') {
+        $adminService->banUser($userId);
+    }
+    
+    header('Location: /admin/users');
+});
+
+$router->get('/admin/analytics', function() {
+    global $adminMiddleware, $adminService;
+    $adminMiddleware->handle();
+    
+    $topPages = $adminService->getTopPages(20);
+    
+    view('admin/analytics', [
+        'title' => 'Analytics',
+        'active' => 'analytics',
+        'topPages' => $topPages
+    ]);
+});
+
+// --- Booking Routes ---
+$router->post('/api/bookings/create', function() {
+    global $bookingService, $auth;
+    header('Content-Type: application/json');
+    
+    if (!$auth->isLoggedIn()) {
+        http_response_code(401);
+        echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
+        exit;
+    }
+    
+    $userId = $auth->getUser()['id'];
+    $itemId = $_POST['item_id'] ?? 0;
+    
+    $data = [
+        'date' => $_POST['date'],
+        'time' => $_POST['time'],
+        'guests' => $_POST['guests'],
+        'requests' => $_POST['special_requests'] ?? ''
+    ];
+    
+    $result = $bookingService->createBooking($userId, $itemId, $data);
+    echo json_encode($result);
     exit;
 });
 

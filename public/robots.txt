@@ -1,0 +1,25 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://yerevango.com/sitemap.xml
+
+# Block admin and auth pages
+Disallow: /admin/
+Disallow: /login
+Disallow: /register
+Disallow: /dashboard
+Disallow: /logout
+
+# Block utility scripts
+Disallow: /public/*.php
+Disallow: /src/
+Disallow: /scripts/
+
+# Allow CSS and JS
+Allow: /css/
+Allow: /js/
+Allow: /assets/
+
+# Crawl delay (be nice to server)
+Crawl-delay: 1

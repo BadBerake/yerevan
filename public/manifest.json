@@ -1,0 +1,60 @@
+{
+  "name": "Yerevango - Discover Yerevan",
+  "short_name": "Yerevango",
+  "description": "Discover the best places, restaurants, cafes, and events in Yerevan, Armenia",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#D90012",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/assets/images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": [
+    "travel",
+    "food",
+    "lifestyle"
+  ],
+  "lang": "en",
+  "dir": "ltr",
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Restaurants",
+      "short_name": "Restaurants",
+      "description": "Browse restaurants in Yerevan",
+      "url": "/restaurants",
+      "icons": [
+        {
+          "src": "/assets/images/logo-icon.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Map",
+      "short_name": "Map",
+      "description": "Explore Yerevan on the map",
+      "url": "/map",
+      "icons": [
+        {
+          "src": "/assets/images/logo-icon.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

@@ -3,6 +3,9 @@
 <div class="map-layout">
     <!-- Sidebar Detail View -->
     <div class="map-sidebar" id="map-sidebar">
+        <!-- Handle for mobile swipe (hidden on desktop) -->
+        <div class="sidebar-handle" style="display: none;"></div>
+        
         <div class="sidebar-empty">
             <span style="font-size: 3rem;">🗺️</span>
             <h3><?= __('explore_map') ?? 'Explore the Map' ?></h3>
@@ -72,103 +75,115 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Map
-    var map = L.map('map', { zoomControl: false }).setView([40.1872, 44.5152], 13);
-    L.control.zoom({ position: 'topright' }).addTo(map);
-
-    // Premium Tiles
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; CARTO',
-        subdomains: 'abcd',
-        maxZoom: 19
-    }).addTo(map);
-
-
-    // User Location with Blue Marker
-    map.locate({setView: true, maxZoom: 14});
-    map.on('locationfound', function(e) {
-        // Blue circle for accuracy
-        L.circle(e.latlng, {
-            radius: e.accuracy / 2,
-            color: '#3b82f6',
-            fillColor: '#60a5fa',
-            fillOpacity: 0.2,
-            weight: 2
-        }).addTo(map);
-        
-        // Blue marker for user location
-        var blueIcon = L.divIcon({
-            className: 'custom-marker',
-            html: '<div style="background: #3b82f6; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>',
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
-        });
-        
-        L.marker(e.latlng, {icon: blueIcon})
-            .addTo(map)
-            .bindPopup("<div style='text-align: center; font-weight: 600;'>📍 <?= __('you_are_here') ?? 'You are here' ?></div>");
-    });
-
-    // Places Data with Red Markers
-    var places = <?= json_encode($items ?? []) ?>;
-    var sidebar = document.getElementById('map-sidebar');
+    const places = <?= json_encode($items ?? []) ?>;
+    const sidebar = document.getElementById('map-sidebar');
+    const currentLang = "<?= Lang::current() ?>";
     
-    // Create custom red icon for places
-    var redIcon = L.divIcon({
-        className: 'custom-marker',
-        html: '<div style="background: #ef4444; width: 32px; height: 32px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 3px solid white; box-shadow: 0 3px 10px rgba(0,0,0,0.4);"><div style="width: 10px; height: 10px; background: white; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(45deg);"></div></div>',
-        iconSize: [32, 32],
-        iconAnchor: [16, 32]
-    });
-
-    places.forEach(function(place) {
-        if (place.latitude && place.longitude) {
-            var marker = L.marker([place.latitude, place.longitude], {icon: redIcon}).addTo(map);
-
-            marker.on('click', function() {
-                // Determine localized content
-                const currentLang = "<?= Lang::current() ?>";
-                let title = place.title || '';
-                let desc = place.description || '';
-                let addr = place.address || 'Address not available';
-
-                try {
-                    const titleTrans = typeof place.title_translations === 'string' ? JSON.parse(place.title_translations) : place.title_translations;
-                    const descTrans = typeof place.description_translations === 'string' ? JSON.parse(place.description_translations) : place.description_translations;
-                    
-                    if (titleTrans && titleTrans[currentLang]) title = titleTrans[currentLang];
-                    if (descTrans && descTrans[currentLang]) desc = descTrans[currentLang];
-                } catch(e) { console.error("Translation parse error"); }
-
-                // Safe escaping helper
-                const esc = (str) => {
-                    if (!str) return '';
-                    return str.replace(/[&<>"']/g, m => ({
-                        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
-                    })[m]);
-                };
-
-                // Update Sidebar
-                sidebar.innerHTML = `
-                    <div class="sidebar-hero" style="background-image: url('${esc(place.image_url || '/public/img/placeholder.jpg')}');">
-                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.7)); padding: 20px; color: white;">
-                             <span style="background: var(--primary); padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 700;">${esc(place.category_name || 'Place')}</span>
-                        </div>
-                    </div>
-                    <div class="sidebar-content">
-                        <div class="sidebar-title">${esc(title)}</div>
-                        <div class="sidebar-meta">📍 ${esc(addr)}</div>
-                        <div class="sidebar-desc">
-                            ${esc(desc.substring(0, 150))}${desc.length > 150 ? '...' : ''}
-                        </div>
-                        <a href="/place/${place.id}" class="btn btn-primary" style="width: 100%;"><?= __('view_details') ?></a>
-                    </div>
-                `;
+    // Helper function to get localized content
+    function getLocalizedContent(item, field) {
+        const translationField = field + '_translations';
+        if (item[translationField]) {
+            try {
+                const translations = typeof item[translationField] === 'string' 
+                    ? JSON.parse(item[translationField]) 
+                    : item[translationField];
                 
-                map.flyTo([place.latitude, place.longitude], 16);
-            });
+                if (translations && translations[currentLang]) {
+                    return translations[currentLang];
+                }
+            } catch(e) {
+                console.error('Translation parse error:', e);
+            }
+        }
+        return item[field] || '';
+    }
+
+    // Initialize map with Yerevango Maps library
+    const mapInstance = new YerevangoMap('map', {
+        center: [40.1872, 44.5152],
+        zoom: 13,
+        enableClustering: true,
+        enableSearch: true,
+        enableFullscreen: true,
+        enableLocate: true,
+        enableLayerSwitch: true,
+        userMarker: true,
+        markers: places.map(place => ({
+            ...place,
+            title: getLocalizedContent(place, 'title'),
+            description: getLocalizedContent(place, 'description')
+        })),
+        onMarkerClick: function(markerData, marker) {
+            const title = getLocalizedContent(markerData, 'title');
+            const desc = getLocalizedContent(markerData, 'description');
+            const addr = markerData.address || 'Address not available';
+            
+            // Safe escaping helper
+            const esc = (str) => {
+                if (!str) return '';
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            };
+
+            // Update Sidebar
+            sidebar.innerHTML = `
+                <div class="sidebar-hero" style="background-image: url('${esc(markerData.image_url || '/public/img/placeholder.jpg')}');">
+                    <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.7)); padding: 20px; color: white;">
+                         <span style="background: var(--primary); padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 700;">${esc(markerData.category_name || 'Place')}</span>
+                    </div>
+                </div>
+                <div class="sidebar-content">
+                    <div class="sidebar-title">${esc(title)}</div>
+                    <div class="sidebar-meta">📍 ${esc(addr)}</div>
+                    <div class="sidebar-desc">
+                        ${esc(desc.substring(0, 150))}${desc.length > 150 ? '...' : ''}
+                    </div>
+                    <a href="/place/${markerData.id}" class="btn btn-primary" style="width: 100%;"><?= __('view_details') ?></a>
+                </div>
+            `;
+            
+            mapInstance.flyTo([markerData.latitude, markerData.longitude], 16);
         }
     });
+
+    // Mobile bottom sheet handling
+    if (window.innerWidth <= 768) {
+        const sidebarHandle = sidebar.querySelector('.sidebar-handle');
+        if (sidebarHandle) {
+            sidebarHandle.style.display = 'block';
+            
+            let startY = 0;
+            let currentY = 0;
+            
+            sidebarHandle.addEventListener('touchstart', (e) => {
+                startY = e.touches[0].clientY;
+            });
+            
+            sidebarHandle.addEventListener('touchmove', (e) => {
+                currentY = e.touches[0].clientY;
+                const diff = currentY - startY;
+                
+                if (diff > 0) {
+                    sidebar.style.transform = `translateY(${diff}px)`;
+                }
+            });
+            
+            sidebarHandle.addEventListener('touchend', () => {
+                const diff = currentY - startY;
+                
+                if (diff > 100) {
+                    sidebar.classList.add('collapsed');
+                } else {
+                    sidebar.classList.remove('collapsed');
+                }
+                
+                sidebar.style.transform = '';
+                startY = 0;
+                currentY = 0;
+            });
+        }
+    }
 });
 </script>
 

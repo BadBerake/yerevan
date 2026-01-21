@@ -51,12 +51,40 @@
                 </div>
                 
                 <div>
-                    <h3 style="font-size: 1.1rem; margin-bottom: 1rem; font-weight: 600;"><?= __('mobile_app') ?></h3>
-                    <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 1rem; line-height: 1.5;"><?= __('download_app') ?></p>
-                    <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <a href="#" style="display: block;"><img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt="Google Play" style="height: 40px; border-radius: 6px;"></a>
-                        <a href="#" style="display: block;"><img src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Download_on_the_App_Store_Badge.svg" alt="App Store" style="height: 40px; border-radius: 6px;"></a>
-                    </div>
+                    <h3 style="font-size: 1.1rem; margin-bottom: 1rem; font-weight: 600;"><?= __('newsletter') ?? 'Newsletter' ?></h3>
+                    <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 1rem; line-height: 1.5;">Get updates on the best of Yerevan.</p>
+                    <form id="newsletterForm" style="display: flex; gap: 8px;">
+                        <input type="email" name="email" placeholder="Your email" required style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); color: white; outline: none; font-size: 0.85rem;">
+                        <button type="submit" style="padding: 10px 15px; border-radius: 8px; background: var(--primary); color: white; border: none; cursor: pointer; font-weight: 700;">Join</button>
+                    </form>
+                    <div id="newsletterMsg" style="margin-top: 10px; font-size: 0.8rem; display: none;"></div>
+                    
+                    <script>
+                    document.getElementById('newsletterForm').addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        const form = e.target;
+                        const msg = document.getElementById('newsletterMsg');
+                        const formData = new FormData(form);
+                        
+                        try {
+                            const response = await fetch('/api/newsletter/subscribe', {
+                                method: 'POST',
+                                body: formData
+                            });
+                            const data = await response.json();
+                            
+                            msg.style.display = 'block';
+                            msg.style.color = data.status === 'success' ? '#4ade80' : '#f87171';
+                            msg.textContent = data.message;
+                            
+                            if (data.status === 'success') {
+                                form.reset();
+                            }
+                        } catch (err) {
+                            console.error(err);
+                        }
+                    });
+                    </script>
                 </div>
                 
                 <div>

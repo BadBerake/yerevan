@@ -2,3 +2,5 @@
 2026-01-11 17:23:48.460 +04 [3537] HINT:  Is another postmaster (PID 511) running in data directory "/usr/local/var/postgresql@14"?
 2026-01-11 17:26:02.579 +04 [3592] FATAL:  lock file "postmaster.pid" already exists
 2026-01-11 17:26:02.579 +04 [3592] HINT:  Is another postmaster (PID 3579) running in data directory "/usr/local/var/postgresql@14"?
+2026-01-14 17:50:08.747 +04 [6579] FATAL:  lock file "postmaster.pid" already exists
+2026-01-14 17:50:08.747 +04 [6579] HINT:  Is another postmaster (PID 6564) running in data directory "/usr/local/var/postgresql@14"?

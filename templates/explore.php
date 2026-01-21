@@ -19,7 +19,7 @@
             <?php foreach ($personalized as $route): ?>
                 <a href="/route/<?= $route['slug'] ?>" style="text-decoration: none; color: inherit;">
                     <div class="card" style="border: 2px solid var(--color-arm-orange);">
-                        <div class="card-img" style="background-image: url('<?= $route['image_url'] ?: 'https://via.placeholder.com/600x400' ?>'); position: relative;">
+                        <div class="card-img lazy-bg" data-src="<?= $route['image_url'] ?: 'https://via.placeholder.com/600x400' ?>" style="position: relative; background-position: center; background-size: cover;">
                             <div style="position: absolute; top: 15px; left: 15px; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); color: white; padding: 4px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">
                                 <?= ucfirst($route['difficulty']) ?>
                             </div>
@@ -56,7 +56,7 @@
             <?php foreach ($others as $route): ?>
                 <a href="/route/<?= $route['slug'] ?>" style="text-decoration: none; color: inherit;">
                     <div class="card">
-                        <div class="card-img" style="background-image: url('<?= $route['image_url'] ?: 'https://via.placeholder.com/500x300' ?>');"></div>
+                        <div class="card-img lazy-bg" data-src="<?= $route['image_url'] ?: 'https://via.placeholder.com/500x300' ?>" style="background-position: center; background-size: cover;"></div>
                         <div class="card-body">
                             <div style="color: var(--primary); font-weight: 800; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem;"><?= htmlspecialchars($route['interest_tag'] ?: 'Local Guide') ?></div>
                             <h3 class="card-title"><?= htmlspecialchars(Lang::t($route['name_translations'], $route['name'])) ?></h3>
