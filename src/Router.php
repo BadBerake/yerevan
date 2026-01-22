@@ -13,6 +13,9 @@ class Router {
 
     public function dispatch($uri, $method) {
         $uri = parse_url($uri, PHP_URL_PATH);
+        if ($uri !== '/' && substr($uri, -1) === '/') {
+            $uri = rtrim($uri, '/');
+        }
         
         // Exact match
         if (isset($this->routes[$method][$uri])) {
