@@ -16,6 +16,7 @@ require_once __DIR__ . '/../src/EmailService.php';
 
 require_once __DIR__ . '/../src/AdminService.php';
 require_once __DIR__ . '/../src/BookingService.php'; // New
+require_once __DIR__ . '/../src/TourService.php'; // New
 require_once __DIR__ . '/../src/Middleware/AdminMiddleware.php';
 
 $config = require __DIR__ . '/../src/config.php';
@@ -32,6 +33,7 @@ $analyticsService = new \App\Services\AnalyticsService($db);
 $emailService = new \App\Services\EmailService($db);
 $adminService = new \App\Services\AdminService($db);
 $bookingService = new \App\Services\BookingService($db); // New
+$tourService = new \App\Services\TourService($db); // New
 $adminMiddleware = new \App\Middleware\AdminMiddleware($auth);
 $router = new Router();
 
@@ -327,6 +329,26 @@ $router->get('/explore', function() {
         'title' => 'Explore Yerevan - Curated Routes',
         'personalized' => $personalized,
         'others' => $others
+    ]);
+});
+
+// Tours (Sales) Routes
+$router->get('/tours', function() {
+    global $tourService;
+    $tours = $tourService->getAllTours(true);
+    view('tours', [
+        'title' => __('tours_sale') ?? 'Tour Sales',
+        'tours' => $tours
+    ]);
+});
+
+$router->get('/tour/{slug}', function($slug) {
+    global $tourService;
+    $tour = $tourService->getTourBySlug($slug);
+    if (!$tour) { header('Location: /tours'); exit; }
+    view('tour-detail', [
+        'title' => $tour['title'],
+        'tour' => $tour
     ]);
 });
 
@@ -1597,6 +1619,112 @@ $router->get('/admin/routes', function() {
     if (!$auth->isAdmin()) { header('Location: /admin/login'); exit; }
     
     $stmt = $db->query("SELECT * FROM tour_routes ORDER BY created_at DESC");
+    view('admin/routes', ['routes' => $stmt->fetchAll()]);
+});
+
+// Admin Tour Sale Management
+$router->get('/admin/tours', function() {
+    global $auth, $tourService;
+    if (!$auth->isAdmin()) { header('Location: /admin/login'); exit; }
+    $tours = $tourService->getAllTours(false);
+    view('admin/tours', ['tours' => $tours]);
+});
+
+$router->get('/admin/tours/new', function() {
+    global $auth;
+    if (!$auth->isAdmin()) { header('Location: /admin/login'); exit; }
+    view('admin/tour-form');
+});
+
+$router->post('/admin/tours/store', function() {
+    global $auth, $tourService;
+    if (!$auth->isAdmin()) { header('Location: /admin/login'); exit; }
+    
+    $title = $_POST['title'];
+    $slug = $_POST['slug'] ?: strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $title)));
+    
+    $image_url = '';
+    if (isset($_FILES['image']) && $_FILES['image']['error'] == 0) {
+        $image_url = uploadFile($_FILES['image'], 'tours');
+    }
+
+    $inclusions = array_filter(explode("\n", str_replace("\r", "", $_POST['inclusions'])));
+    $exclusions = array_filter(explode("\n", str_replace("\r", "", $_POST['exclusions'])));
+
+    $tourService->createTour([
+        'title' => $title,
+        'slug' => $slug,
+        'description' => $_POST['description'],
+        'short_description' => $_POST['short_description'],
+        'price' => $_POST['price'],
+        'duration' => $_POST['duration'],
+        'image_url' => $image_url,
+        'inclusions' => array_values($inclusions),
+        'exclusions' => array_values($exclusions),
+        'is_active' => isset($_POST['is_active'])
+    ]);
+
+    header('Location: /admin/tours');
+    exit;
+});
+
+$router->get('/admin/tours/edit', function() {
+    global $auth, $tourService;
+    if (!$auth->isAdmin()) { header('Location: /admin/login'); exit; }
+    $tour = $tourService->getTourById($_GET['id']);
+    view('admin/tour-form', ['tour' => $tour]);
+});
+
+$router->post('/admin/tours/update', function() {
+    global $auth, $tourService;
+    if (!$auth->isAdmin()) { header('Location: /admin/login'); exit; }
+    
+    $id = $_POST['id'];
+    $tour = $tourService->getTourById($id);
+    
+    $title = $_POST['title'];
+    $slug = $_POST['slug'] ?: strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $title)));
+    
+    $image_url = $tour['image_url'];
+    if (isset($_FILES['image']) && $_FILES['image']['error'] == 0) {
+        $image_url = uploadFile($_FILES['image'], 'tours');
+    }
+
+    $inclusions = array_filter(explode("\n", str_replace("\r", "", $_POST['inclusions'])));
+    $exclusions = array_filter(explode("\n", str_replace("\r", "", $_POST['exclusions'])));
+
+    $tourService->updateTour($id, [
+        'title' => $title,
+        'slug' => $slug,
+        'description' => $_POST['description'],
+        'short_description' => $_POST['short_description'],
+        'price' => $_POST['price'],
+        'duration' => $_POST['duration'],
+        'image_url' => $image_url,
+        'inclusions' => array_values($inclusions),
+        'exclusions' => array_values($exclusions),
+        'is_active' => isset($_POST['is_active'])
+    ]);
+
+    header('Location: /admin/tours');
+    exit;
+});
+
+$router->post('/admin/tours/toggle-status', function() {
+    global $auth, $db;
+    if (!$auth->isAdmin()) { header('Location: /admin/login'); exit; }
+    $db->query("UPDATE tours SET is_active = ? WHERE id = ?", [$_POST['status'], $_POST['id']]);
+    header('Location: /admin/tours');
+    exit;
+});
+
+$router->post('/admin/tours/delete', function() {
+    global $auth, $tourService;
+    if (!$auth->isAdmin()) { header('Location: /admin/login'); exit; }
+    $tourService->deleteTour($_POST['id']);
+    header('Location: /admin/tours');
+    exit;
+});
     $routes = $stmt->fetchAll();
     
     view('admin/routes', ['routes' => $routes]);

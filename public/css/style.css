@@ -804,31 +804,41 @@ footer {
     }
 
     nav {
-        display: none;
+        display: flex;
         position: fixed;
-        top: var(--header-height);
-        left: 0;
-        right: 0;
+        top: 0;
+        right: -100%;
         bottom: 0;
+        width: 300px;
         background: white;
-        padding: 2rem;
-        box-shadow: none;
+        padding: 5rem 2rem 2rem;
+        box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
         flex-direction: column;
-        border-top: 1px solid #f1f5f9;
-        overflow-y: auto;
-        z-index: 999;
+        transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 101;
     }
 
     nav.active {
-        display: flex;
+        right: 0;
     }
 
     nav ul {
         flex-direction: column;
-        gap: 1.5rem;
-        align-items: center;
+        gap: 1.2rem;
+        align-items: flex-start;
         width: 100%;
-        margin-bottom: 2rem;
+    }
+
+    nav ul li {
+        width: 100%;
+    }
+
+    nav a {
+        font-size: 1.1rem;
+        padding: 10px 0;
+        display: block;
+        border-bottom: 1px solid #f1f5f9;
+        width: 100%;
     }
 
     .auth-buttons {
@@ -996,7 +1006,7 @@ footer {
 
 /* Animations for Mobile Menu */
 .mobile-toggle.active span:nth-child(1) {
-    transform: rotate(45deg) translate(5px, 5px);
+    transform: rotate(45deg) translate(7px, 7px);
 }
 
 .mobile-toggle.active span:nth-child(2) {
@@ -1005,4 +1015,21 @@ footer {
 
 .mobile-toggle.active span:nth-child(3) {
     transform: rotate(-45deg) translate(7px, -7px);
+}
+
+/* Overlay for Mobile Menu */
+.menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    display: none;
+}
+
+.menu-overlay.active {
+    display: block;
 }

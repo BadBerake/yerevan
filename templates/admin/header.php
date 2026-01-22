@@ -52,6 +52,9 @@
                 <li><a href="/admin/routes" class="<?= strpos($_SERVER['REQUEST_URI'], '/admin/routes') === 0 ? 'active' : '' ?>">
                     <span class="admin-menu-icon">🗺️</span> Tour Routes
                 </a></li>
+                <li><a href="/admin/tours" class="<?= strpos($_SERVER['REQUEST_URI'], '/admin/tours') === 0 ? 'active' : '' ?>">
+                    <span class="admin-menu-icon">🎟️</span> Tours Sale
+                </a></li>
                 
                 <li style="margin-top: 1rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: #7f8c8d; padding-left: 15px;">System</li>
                 <li><a href="/admin/users" class="<?= strpos($_SERVER['REQUEST_URI'], '/admin/users') === 0 ? 'active' : '' ?>">

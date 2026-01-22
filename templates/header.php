@@ -100,6 +100,7 @@
                     <li><a href="/events"><?= __('events') ?></a></li>
                     <li><a href="/explore" style="font-weight: 700; color: var(--primary);"><?= __('explore') ?></a></li>
                     <li><a href="/map"><?= __('map') ?></a></li>
+                    <li><a href="/tours" style="color: var(--primary); font-weight: 700;"><?= __('tours') ?? 'Tours' ?></a></li>
                     <li><a href="/transport"><?= __('transport') ?? 'Transport' ?></a></li>
                     <li><a href="/communities"><?= __('communities') ?></a></li>
                     <li><a href="/leaderboard" title="Community Rankings"><i class="fas fa-trophy" style="color: #facc15; margin-right: 5px;"></i> Leaderboard</a></li>
@@ -169,17 +170,42 @@
             </div>
         </div>
     </header>
+    <div class="menu-overlay" id="menuOverlay"></div>
 
     <script>
         document.getElementById('mobileToggle').addEventListener('click', function() {
             this.classList.toggle('active');
             const nav = document.getElementById('mainNav');
+            const overlay = document.getElementById('menuOverlay');
             nav.classList.toggle('active');
+            overlay.classList.toggle('active');
+            document.body.style.overflow = nav.classList.contains('active') ? 'hidden' : '';
             
             // Toggle visibility of mobile auth
             const mobileAuth = nav.querySelector('.mobile-only-auth');
             if (window.innerWidth <= 768) {
                 mobileAuth.style.display = nav.classList.contains('active') ? 'block' : 'none';
+            }
+        });
+
+        // Close menu on click outside or overlay click
+        function closeMenu() {
+            const nav = document.getElementById('mainNav');
+            const toggle = document.getElementById('mobileToggle');
+            const overlay = document.getElementById('menuOverlay');
+            toggle.classList.remove('active');
+            nav.classList.remove('active');
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        document.getElementById('menuOverlay').addEventListener('click', closeMenu);
+
+        document.addEventListener('click', function(e) {
+            const nav = document.getElementById('mainNav');
+            const toggle = document.getElementById('mobileToggle');
+            if (nav.classList.contains('active') && !nav.contains(e.target) && !toggle.contains(e.target) && !e.target.classList.contains('menu-overlay')) {
+                closeMenu();
             }
         });
     </script>
